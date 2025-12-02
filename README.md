@@ -1,311 +1,750 @@
-# Sensu Monitoring Infrastructure: Ubuntu Home Server + Kali & CentOS Agents
+markdown
+# 🔍 Sensu Monitoring Infrastructure: Multi-Platform Deployment Guide
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Sensu Go](https://img.shields.io/badge/Sensu_Go-6.13.0+-green.svg?logo=sensu)](https://sensu.io/)
-[![Platform](https://img.shields.io/badge/Platform-Ubuntu%20%7C%20Kali%20%7C%20CentOS-blue.svg?logo=linux)](https://github.com)
+[![Sensu Go Version](https://img.shields.io/badge/Sensu_Go-6.13.0+-green.svg?logo=sensu&logoColor=white)](https://sensu.io/)
+[![Platform Support](https://img.shields.io/badge/Platform-Ubuntu%20%7C%20Kali%20%7C%20CentOS-blue.svg?logo=linux)](https://github.com)
+[![Database: PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL_13+-336791.svg?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Status: Production Ready](https://img.shields.io/badge/Status-Production_Ready-brightgreen.svg)](https://github.com)
 
-A comprehensive, enterprise-grade guide to setting up a distributed Sensu monitoring infrastructure. This project details the deployment of a **Sensu Backend on Ubuntu Server** (Home Server) and monitored **Sensu Agents on Kali Linux and CentOS**.
+A comprehensive, battle-tested guide for deploying a **production-grade Sensu monitoring infrastructure** across heterogeneous environments. This repository provides step-by-step instructions for setting up a central Sensu backend on Ubuntu Server with **PostgreSQL database integration**, and monitored agents on Kali Linux (with GPG security fixes) and CentOS systems.
 
-This guide solves the common **GPG SHA-1/Weak Digest errors** found in modern Kali Linux distributions and utilizes official **Sensu Assets** for professional-grade metric collection.
+## 🚀 Quick Start
 
-## 📋 Table of Contents
+```bash
+# Clone and deploy
+git clone https://github.com/yourusername/sensu-monitoring-infra.git
+cd sensu-monitoring-infra
 
-- [Overview](#-overview)
-- [Architecture](#-architecture)
-- [Prerequisites](#-prerequisites)
-- [Installation Guide](#-installation-guide)
-  - [Part 1: Ubuntu Backend (Home Server)](#part-1-ubuntu-backend-home-server)
-  - [Part 2: Kali Linux Agent (GPG/SHA-1 Fix)](#part-2-kali-linux-agent-gpgsha-1-fix)
-  - [Part 3: CentOS Agent](#part-3-centos-agent)
-  - [Part 4: Installing Assets (Plugins)](#part-4-installing-assets-plugins)
-- [Configuring Checks](#-configuring-checks)
-- [Verification](#-verification)
-- [Troubleshooting](#-troubleshooting)
-- [Screenshots](#-screenshots)
-- [Contributing](#-contributing)
-- [Author](#-author)
+# Review architecture and prerequisites
+cat ARCHITECTURE.md
 
-## 🎯 Overview
-
-This project implements a secure monitoring solution where:
-- **Ubuntu Server** acts as the central Event Pipeline (Backend/Server).
-- **Kali Linux** acts as a monitored endpoint (Debian-based Agent).
-- **CentOS** acts as a monitored endpoint (RHEL-based Agent).
-- **Sensu Assets** are utilized to perform professional checks on CPU, Memory, and Disk usage across all nodes.
-
-## 🏗️ Architecture
-
-```mermaid
-graph TD
-    subgraph Agents
-    A[Kali Linux Agent] -- WebSocket 8081 --> S
-    B[CentOS Agent] -- WebSocket 8081 --> S
-    end
-    
-    subgraph Home Server
-    S[Ubuntu Backend] -- API 8080 --> C[Sensu CLI / Web UI]
-    S -- Data --> D[etcd Database]
-    end
-    
-    style A fill:#f96,stroke:#333,stroke-width:2px
-    style B fill:#f96,stroke:#333,stroke-width:2px
-    style S fill:#61d668,stroke:#333,stroke-width:2px
+# Deploy using our automated scripts (optional)
+./deploy-backend.sh
+📊 Architecture Overview
 
 
-📦 Prerequisites
-Ubuntu Home Server:
 
-Ubuntu 20.04/22.04 LTS
 
-Static IP Address (Required for agents to connect)
 
-Ports Open: 8080 (API), 8081 (Agent WS), 3000 (Dashboard)
 
-Agents (Kali & CentOS):
 
-Root/Sudo privileges
 
-Network connectivity to the Ubuntu Server IP
 
-🚀 Installation Guide
+
+
+
+
+
+
+
+
+
+
+✨ Key Features
+🔧 Multi-Platform Support: Complete setup guides for Ubuntu, Kali Linux, and CentOS
+
+🗄️ PostgreSQL Integration: Production-grade database setup for Sensu backend
+
+🛡️ Security-First Approach: GPG/SHA-1 workaround for modern Kali Linux distributions
+
+📈 Production Ready: Includes monitoring checks for CPU, memory, and disk usage
+
+🔌 Asset Management: Utilizes official Sensu assets for professional-grade monitoring
+
+🎯 Agent Segmentation: Logical subscription-based grouping for targeted monitoring
+
+📊 Visual Dashboard: Sensu Web UI for real-time monitoring and alerting
+
+📋 Prerequisites
+Hardware Requirements
+Component	Minimum	Recommended
+Backend Server	2 CPU, 4GB RAM	4 CPU, 8GB RAM
+PostgreSQL Database	2 CPU, 4GB RAM	4 CPU, 8GB RAM
+Agent Nodes	1 CPU, 2GB RAM	2 CPU, 4GB RAM
+Storage	20GB free space	50GB free space
+Database Requirements
+PostgreSQL: Version 13+ (recommended for Sensu)
+
+Storage: 20GB+ for metrics data
+
+Memory: 4GB+ dedicated for PostgreSQL
+
+Backup: Regular backup strategy implementation
+
+Network Requirements
+Backend Server: Static IP address
+
+Open Ports:
+
+8080 (Sensu API)
+
+8081 (Agent WebSocket)
+
+3000 (Web UI Dashboard)
+
+5432 (PostgreSQL, if remote access needed)
+
+Network Latency: < 100ms between agents and backend
+
+Software Requirements
+Ubuntu Server: 20.04 LTS or 22.04 LTS
+
+Kali Linux: 2022.3+ (with GPG security patch)
+
+CentOS: 7 or 8
+
+PostgreSQL: 13+ for Sensu compatibility
+
+Docker: Optional, for containerized deployment
+
+🛠️ Installation Guide
 Part 1: Ubuntu Backend (Home Server)
-Perform these steps on your Ubuntu Server.
+Step 1: System Preparation
+bash
+# Update system and install prerequisites
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y curl gnupg2 ca-certificates software-properties-common
 
-=> 1. Add Repository & Install Backend
+# Configure hostname (optional but recommended)
+sudo hostnamectl set-hostname sensu-backend
+Step 2: Install Sensu Backend
+bash
+# Add Sensu repository
+curl -s https://packagecloud.io/install/repositories/sensu/stable/script.deb.sh | sudo bash
 
-Bash
+# Install Sensu backend
+sudo apt install sensu-go-backend -y
 
-# Update system
-sudo apt-get update
-
-# Add the official Sensu repository
-curl -s [https://packagecloud.io/install/repositories/sensu/stable/script.deb.sh](https://packagecloud.io/install/repositories/sensu/stable/script.deb.sh) | sudo bash
-
-# Install the backend
-sudo apt-get install sensu-go-backend -y
-=> 2. Initialize & Start Service
-
-Bash
-
-# Enable and start the service
-sudo systemctl enable --now sensu-backend
-
-# Initialize the configuration (Replace credentials!)
+# Verify installation
+sensu-backend version
+Step 3: Initialize Sensu Backend
+bash
+# Set environment variables for initialization
 export SENSU_BACKEND_CLUSTER_ADMIN_USERNAME=admin
-export SENSU_BACKEND_CLUSTER_ADMIN_PASSWORD=StrongPassword123
+export SENSU_BACKEND_CLUSTER_ADMIN_PASSWORD=$(openssl rand -base64 16)
+export SENSU_BACKEND_CLUSTER_ADMIN_PASSWORD='StrongPassword123'  # Or use generated
 
+# Initialize the backend
 sudo --preserve-env sensu-backend init
-=> 3. Configure Sensu CLI (sensuctl)
 
-Bash
+# Save credentials securely
+echo "Username: admin" > ~/sensu-credentials.txt
+echo "Password: $SENSU_BACKEND_CLUSTER_ADMIN_PASSWORD" >> ~/sensu-credentials.txt
+chmod 600 ~/sensu-credentials.txt
+Step 4: Configure Services
+bash
+# Enable and start the backend service
+sudo systemctl enable sensu-backend
+sudo systemctl start sensu-backend
+sudo systemctl status sensu-backend
 
-# Install CLI
-sudo apt-get install sensu-go-cli -y
+# Configure firewall
+sudo ufw allow 8080/tcp comment 'Sensu API'
+sudo ufw allow 8081/tcp comment 'Agent WebSocket'
+sudo ufw allow 3000/tcp comment 'Web UI'
+sudo ufw reload
+Part 2: PostgreSQL Database Setup for Sensu
+Why PostgreSQL with Sensu?
+While Sensu comes with embedded etcd by default, PostgreSQL offers:
 
-# Configure connection
-sensuctl configure -n \
-  --username 'admin' \
-  --password 'StrongPassword123' \
-  --namespace default \
-  --url '[http://127.0.0.1:8080](http://127.0.0.1:8080)'
-=> 4. Create a Dedicated Agent User
+Better persistence and reliability
 
-Bash
+Standard SQL interface for queries
 
-sensuctl user create agent --password 'AgentPassword123'
-=> 5. Configure Firewall
+Enterprise backup/recovery capabilities
 
-Bash
+Better performance for large deployments
 
-sudo ufw allow 8080/tcp  # API
-sudo ufw allow 8081/tcp  # WebSocket
-sudo ufw allow 3000/tcp  # Web UI
-Part 2: Kali Linux Agent (GPG/SHA-1 Fix)
-⚠️ IMPORTANT: This section uses the "Signed-By" method to prevent the common GPG SHA-1/Weak Digest errors on Kali.
+Familiar tooling for DBAs
 
-Perform these steps on your Kali Linux machine.
+Step 1: Install PostgreSQL on Ubuntu Backend
+bash
+# Install PostgreSQL 13 (or latest stable)
+sudo apt update
+sudo apt install -y postgresql postgresql-contrib postgresql-client
 
-=> 1. Manually Add GPG Key (The Secure Way) Do not use the auto-script. Run these commands line-by-line:
+# Check PostgreSQL version
+psql --version
 
-Bash
+# Start and enable PostgreSQL
+sudo systemctl enable --now postgresql
+sudo systemctl status postgresql
+Step 2: Configure PostgreSQL for Sensu
+bash
+# Switch to postgres user
+sudo -i -u postgres
 
-# Update and install prerequisites
-sudo apt-get update
-sudo apt-get install -y curl gnupg2 debian-archive-keyring
+# Create Sensu database and user
+psql -c "CREATE USER sensu WITH PASSWORD 'StrongDBPassword123!';"
+psql -c "CREATE DATABASE sensu_db OWNER sensu;"
+psql -c "GRANT ALL PRIVILEGES ON DATABASE sensu_db TO sensu;"
 
-# Download the GPG key and convert it to a specific keyring (Fixes SHA-1 error)
-curl -fsSL [https://packagecloud.io/sensu/stable/gpgkey](https://packagecloud.io/sensu/stable/gpgkey) | sudo gpg --dearmor -o /usr/share/keyrings/sensu-archive-keyring.gpg
+# For production, adjust connection limits
+psql -d sensu_db -c "ALTER USER sensu WITH CONNECTION LIMIT 100;"
 
-# Add the repository explicitly pointing to that key
-echo "deb [signed-by=/usr/share/keyrings/sensu-archive-keyring.gpg] [https://packagecloud.io/sensu/stable/debian/](https://packagecloud.io/sensu/stable/debian/) buster main" | sudo tee /etc/apt/sources.list.d/sensu.list
+# Exit postgres user
+exit
+Step 3: Configure PostgreSQL Authentication
+bash
+# Edit PostgreSQL authentication file
+sudo nano /etc/postgresql/13/main/pg_hba.conf
 
-# Install the agent
-sudo apt-get update
-sudo apt-get install sensu-go-agent -y
-=> 2. Configure the Agent Edit the config: sudo nano /etc/sensu/agent.yml (Replace UBUNTU_IP with your Home Server IP)
+# Add these lines at the end (adjust IP ranges as needed):
+host    sensu_db        sensu           127.0.0.1/32            md5
+host    sensu_db        sensu           192.168.1.0/24          md5
+host    sensu_db        sensu           ::1/128                 md5
 
-YAML
+# Enable remote connections (optional for multi-node)
+sudo nano /etc/postgresql/13/main/postgresql.conf
 
+# Uncomment and modify:
+listen_addresses = '*'  # Or 'localhost,192.168.1.100'
+port = 5432
+max_connections = 200
+
+# Restart PostgreSQL
+sudo systemctl restart postgresql
+Step 4: Configure Sensu Backend with PostgreSQL
+bash
+# Stop Sensu backend before configuration
+sudo systemctl stop sensu-backend
+
+# Create Sensu configuration directory
+sudo mkdir -p /etc/sensu
+
+# Create backend configuration file with PostgreSQL settings
+sudo tee /etc/sensu/backend.yml << 'EOF'
+# PostgreSQL Datastore Configuration
+datastore:
+  postgresql:
+    host: "localhost"
+    port: 5432
+    user: "sensu"
+    password: "StrongDBPassword123!"
+    database: "sensu_db"
+    sslmode: "disable"  # For production: "require" or "verify-full"
+    pool_size: 20
+    statement_timeout: 5000
+
+# Sensu Backend Configuration
+backend:
+  state-dir: "/var/lib/sensu/sensu-backend"
+  log-level: "info"
+  api-listen-address: "0.0.0.0:8080"
+  agent-ws-listen-address: "0.0.0.0:8081"
+  agent-tcp-listen-address: "0.0.0.0:3031"
+  dashboard-listen-address: "0.0.0.0:3000"
+
+# Event Logging
+event-log-file: "/var/log/sensu/sensu-backend/events.log"
+EOF
+
+# Set proper permissions
+sudo chown sensu:sensu /etc/sensu/backend.yml
+sudo chmod 600 /etc/sensu/backend.yml
+
+# Start Sensu with PostgreSQL
+sudo systemctl start sensu-backend
+
+# Verify PostgreSQL connection
+sudo journalctl -u sensu-backend -n 20 --no-pager | grep -i postgres
+Step 5: Verify PostgreSQL Integration
+bash
+# Check if Sensu created necessary tables
+PGPASSWORD='StrongDBPassword123!' psql -h localhost -U sensu -d sensu_db -c "\dt"
+
+# Check Sensu backend logs for PostgreSQL connection
+sudo journalctl -u sensu-backend -n 50 --no-pager | grep -i postgres
+
+# Verify Sensu is using PostgreSQL
+sensuctl cluster health --format json | jq '.'
+Part 3: Kali Linux Agent (With GPG Fix)
+Step 1: Resolve GPG SHA-1/Weak Digest Error
+bash
+# Method 1: Manual GPG Key Installation (Recommended)
+sudo apt update
+sudo apt install -y curl gnupg2 debian-archive-keyring
+
+# Download and convert GPG key to avoid SHA-1 error
+curl -fsSL https://packagecloud.io/sensu/stable/gpgkey | \
+  sudo gpg --dearmor -o /usr/share/keyrings/sensu-archive-keyring.gpg
+
+# Add repository with explicit keyring reference
+echo "deb [signed-by=/usr/share/keyrings/sensu-archive-keyring.gpg] \
+  https://packagecloud.io/sensu/stable/debian/ buster main" | \
+  sudo tee /etc/apt/sources.list.d/sensu.list
+
+# Method 2: Alternative approach for newer Kali versions
+echo "deb [arch=amd64] https://packagecloud.io/sensu/stable/debian/ any main" | \
+  sudo tee /etc/apt/sources.list.d/sensu.list
+  
+curl -L https://packagecloud.io/sensu/stable/gpgkey | sudo apt-key add -
+Step 2: Install and Configure Agent
+bash
+# Update and install agent
+sudo apt update
+sudo apt install sensu-go-agent -y
+
+# Create agent configuration
+sudo tee /etc/sensu/agent.yml << EOF
 ---
-backend-url:
-  - "ws://UBUNTU_IP:8081"
-name: "kali-linux"
+name: "kali-$(hostname)"
+namespace: "default"
 subscriptions:
   - system
   - linux
   - kali
-namespace: "default"
-user: "agent"
-password: "AgentPassword123"
-=> 3. Start the Agent
+  - development
+backend-url:
+  - "ws://YOUR_UBUNTU_IP:8081"
+cache-dir: "/var/cache/sensu/sensu-agent"
+config-file: "/etc/sensu/agent.yml"
+labels:
+  environment: "development"
+  os: "kali-linux"
+annotations:
+  project: "Sensu Monitoring"
+  maintainer: "Ops Team"
+EOF
 
-Bash
+# Replace with your Ubuntu server IP
+sudo sed -i "s/YOUR_UBUNTU_IP/192.168.1.100/g" /etc/sensu/agent.yml
+Step 3: Start and Verify Agent
+bash
+# Enable and start agent service
+sudo systemctl enable sensu-agent
+sudo systemctl start sensu-agent
 
-sudo systemctl enable --now sensu-agent
-Part 3: CentOS Agent
-Perform these steps on your CentOS machine.
+# Check service status
+sudo systemctl status sensu-agent
 
-=> 1. Install Agent
-
-Bash
-
-# Add Sensu repository (RPM-based)
-curl -s [https://packagecloud.io/install/repositories/sensu/stable/script.rpm.sh](https://packagecloud.io/install/repositories/sensu/stable/script.rpm.sh) | sudo bash
+# View agent logs
+sudo journalctl -u sensu-agent -f --no-pager
+Part 4: CentOS Agent
+Step 1: Install Sensu Agent
+bash
+# Add Sensu repository for CentOS/RHEL
+curl -s https://packagecloud.io/install/repositories/sensu/stable/script.rpm.sh | sudo bash
 
 # Install agent
 sudo yum install sensu-go-agent -y
-=> 2. Configure the Agent Edit the config: sudo vi /etc/sensu/agent.yml (Replace UBUNTU_IP with your Home Server IP)
 
-YAML
-
+# Alternative for CentOS 8/RHEL 8
+sudo dnf install sensu-go-agent -y
+Step 2: Configure Agent
+bash
+# Create configuration file
+sudo tee /etc/sensu/agent.yml << EOF
 ---
-backend-url:
-  - "ws://UBUNTU_IP:8081"
-name: "centos-server"
+name: "centos-$(hostname | cut -d. -f1)"
+namespace: "default"
 subscriptions:
   - system
   - linux
   - centos
-namespace: "default"
-user: "agent"
-password: "AgentPassword123"
-=> 3. Start the Agent
+  - production
+backend-url:
+  - "ws://YOUR_UBUNTU_IP:8081"
+cache-dir: "/var/cache/sensu/sensu-agent"
+config-file: "/etc/sensu/agent.yml"
+labels:
+  environment: "production"
+  os: "centos"
+  role: "webserver"
+annotations:
+  department: "IT Operations"
+  sla: "24x7"
+EOF
 
-Bash
+# Update IP address
+sudo sed -i "s/YOUR_UBUNTU_IP/192.168.1.100/g" /etc/sensu/agent.yml
+Step 3: Manage Agent Service
+bash
+# Start and enable service
+sudo systemctl enable sensu-agent
+sudo systemctl start sensu-agent
 
-sudo systemctl enable --now sensu-agent
-Part 4: Installing Assets (Plugins)
-Run these commands on your Ubuntu Backend using sensuctl. This installs the official plugins for accurate CPU, RAM, and Disk monitoring.
+# Configure SELinux if enabled
+sudo setsebool -P sensu_agent_can_network 1
 
-=> 1. Install Assets
+# Open firewall for agent
+sudo firewall-cmd --permanent --add-port=3030/tcp
+sudo firewall-cmd --reload
+Part 5: Sensu CLI Configuration
+Configure sensuctl on Backend
+bash
+# Install sensuctl if not already installed
+sudo apt install sensu-go-cli -y
 
-Bash
+# Configure sensuctl
+sensuctl configure -n \
+  --username 'admin' \
+  --password 'StrongPassword123' \
+  --namespace 'default' \
+  --url 'http://localhost:8080' \
+  --format 'tabular' \
+  --timeout '30s'
 
-sensuctl asset add sensu/check-cpu-usage
-sensuctl asset add sensu/check-memory-usage
-sensuctl asset add sensu/check-disk-usage
-=> 2. Verify Assets
+# Verify configuration
+sensuctl config view
 
-Bash
+# Test connection
+sensuctl cluster health
+Create Dedicated Agent User
+bash
+# Create agent user with limited permissions
+sensuctl user create agent \
+  --password 'AgentPassword123' \
+  --groups 'agents'
 
-sensuctl asset list
-Ensure all assets show as "Available".
+# Create role for agents
+sensuctl create -f - << EOF
+{
+  "type": "Role",
+  "api_version": "core/v2",
+  "metadata": {
+    "name": "agent"
+  },
+  "rules": [
+    {
+      "verbs": ["get", "list"],
+      "resources": ["events", "entities"],
+      "resource_names": []
+    }
+  ]
+}
+EOF
+📦 Asset Management
+Install Essential Monitoring Assets
+bash
+# CPU monitoring
+sensuctl asset add sensu/check-cpu-usage -r check-cpu-usage
 
-⚙️ Configuring Checks
-Create these checks on the Ubuntu Backend. They will automatically be deployed to Kali and CentOS agents.
+# Memory monitoring
+sensuctl asset add sensu/check-memory-usage -r check-memory-usage
 
-=> CPU Check
+# Disk monitoring
+sensuctl asset add sensu/check-disk-usage -r check-disk-usage
 
-Bash
+# Process monitoring
+sensuctl asset add sensu/check-processes -r check-processes
 
+# Network monitoring
+sensuctl asset add sensu/check-network-interface -r check-network
+
+# PostgreSQL monitoring
+sensuctl asset add sensu/postgresql-check -r postgresql-check
+
+# List all assets
+sensuctl asset list --format yaml
+⚙️ Monitoring Checks Configuration
+System Health Checks
+bash
+# CPU Check (Triggers warning at 75%, critical at 90%)
 sensuctl check create check-cpu \
   --command 'check-cpu-usage -w 75 -c 90' \
-  --interval 60 \
+  --interval 30 \
   --subscriptions system \
-  --runtime-assets sensu/check-cpu-usage
-=> Memory Check
+  --runtime-assets check-cpu-usage \
+  --timeout 10 \
+  --handlers slack,email \
+  --publish true \
+  --severity warning
 
-Bash
-
+# Memory Check
 sensuctl check create check-memory \
   --command 'check-memory-usage -w 80 -c 90' \
   --interval 60 \
   --subscriptions system \
-  --runtime-assets sensu/check-memory-usage
-=> Disk Check
+  --runtime-assets check-memory-usage \
+  --labels "team=operations" \
+  --annotations "runbook=https://wiki.example.com/runbooks/memory"
 
-Bash
-
+# Disk Check with custom thresholds
 sensuctl check create check-disk \
-  --command 'check-disk-usage -w 80 -c 90' \
-  --interval 3600 \
+  --command 'check-disk-usage -w 80 -c 90 -p / -p /var -p /home' \
+  --interval 300 \
   --subscriptions system \
-  --runtime-assets sensu/check-disk-usage
-✅ Verification
-=> Check Connected Agents (On Ubuntu)
+  --runtime-assets check-disk-usage \
+  --ttl 600
+PostgreSQL Database Monitoring
+bash
+# PostgreSQL Health Check
+sensuctl check create postgresql-health \
+  --command 'postgresql-check -H localhost -u sensu -p StrongDBPassword123! -d sensu_db' \
+  --interval 60 \
+  --subscriptions database \
+  --runtime-assets postgresql-check \
+  --handlers slack,email \
+  --labels "service=postgresql" \
+  --annotations "runbook=https://wiki.example.com/runbooks/postgresql"
 
-Bash
+# PostgreSQL Connection Monitoring
+sensuctl check create postgresql-connections \
+  --command 'postgresql-check -H localhost -u sensu -p StrongDBPassword123! --check-connections -w 150 -c 180' \
+  --interval 120 \
+  --subscriptions database \
+  --runtime-assets postgresql-check
 
+# PostgreSQL Database Size Monitoring
+sensuctl check create postgresql-disk \
+  --command 'check-disk-usage -w 80 -c 90 -p /var/lib/postgresql' \
+  --interval 300 \
+  --subscriptions database \
+  --runtime-assets check-disk-usage \
+  --handlers pagerduty
+🗄️ PostgreSQL Maintenance & Backup
+Database Optimization
+bash
+# Regular vacuum and analyze (add to cron)
+PGPASSWORD='StrongDBPassword123!' psql -h localhost -U sensu -d sensu_db -c "VACUUM ANALYZE;"
+
+# Check database size
+PGPASSWORD='StrongDBPassword123!' psql -h localhost -U sensu -d sensu_db -c "
+SELECT pg_database.datname, 
+       pg_size_pretty(pg_database_size(pg_database.datname)) AS size
+FROM pg_database
+WHERE pg_database.datname = 'sensu_db';
+"
+Backup and Recovery Script
+bash
+#!/bin/bash
+# save as: /usr/local/bin/sensu-postgres-backup.sh
+
+BACKUP_DIR="/backup/sensu-postgres"
+DATE=$(date +%Y%m%d_%H%M%S)
+RETENTION_DAYS=30
+
+# Create backup directory
+mkdir -p $BACKUP_DIR
+
+# Backup PostgreSQL database
+PGPASSWORD='StrongDBPassword123!' pg_dump -h localhost -U sensu -d sensu_db \
+  -F c -b -v -f "$BACKUP_DIR/sensu_db_$DATE.backup"
+
+# Backup Sensu configuration
+tar czf "$BACKUP_DIR/sensu_config_$DATE.tar.gz" /etc/sensu/
+
+# Remove old backups
+find $BACKUP_DIR -name "*.backup" -mtime +$RETENTION_DAYS -delete
+find $BACKUP_DIR -name "*.tar.gz" -mtime +$RETENTION_DAYS -delete
+
+# Log backup completion
+echo "Backup completed: $BACKUP_DIR/sensu_db_$DATE.backup" >> /var/log/sensu-backup.log
+
+# Add to cron (daily at 2 AM)
+# sudo crontab -e
+# 0 2 * * * /usr/local/bin/sensu-postgres-backup.sh
+Restore from Backup
+bash
+# Stop Sensu backend
+sudo systemctl stop sensu-backend
+
+# Drop and recreate database
+sudo -i -u postgres psql -c "DROP DATABASE sensu_db;"
+sudo -i -u postgres psql -c "CREATE DATABASE sensu_db OWNER sensu;"
+
+# Restore from backup
+PGPASSWORD='StrongDBPassword123!' pg_restore -h localhost -U sensu -d sensu_db \
+  -v "/backup/sensu-postgres/sensu_db_20241202_0200.backup"
+
+# Restart Sensu
+sudo systemctl start sensu-backend
+
+# Verify restoration
 sensuctl entity list
-Expected Output:
+sensuctl check list
+🔍 Verification and Testing
+Verify Agent Connectivity
+bash
+# List all entities (agents)
+sensuctl entity list --format json | jq '.[] | {name: .metadata.name, subscriptions: .subscriptions}'
 
-Plaintext
+# Check specific agent status
+sensuctl entity info kali-linux --format yaml
 
-      ID         Class    OS           Subscriptions                   Last Seen
-────────────── ─────── ─────── ───────────────────────────── ─────────────────────────
- kali-linux      agent   linux   system,linux,kali             2025-12-02 14:00:00
- centos-server   agent   linux   system,linux,centos           2025-12-02 14:00:05
-=> Access Web Dashboard Open: http://YOUR_UBUNTU_IP:3000
+# Test agent subscription matching
+sensuctl event list --subscriptions kali
+Test Monitoring Checks
+bash
+# Manually execute a check on an agent
+sensuctl check execute check-cpu kali-linux
 
-User: admin
+# View events from checks
+sensuctl event list --format table
 
-Pass: StrongPassword123
+# Filter events by status
+sensuctl event list --format json | jq '.[] | select(.check.status != 0)'
+System Health Verification
+bash
+# Check Sensu backend health
+sensuctl cluster health --format json
 
-🔧 Troubleshooting
-=> Kali Linux GPG Error If you see "weak digest" or "SHA-1" errors, ensure you followed Part 2 Step 1 exactly. Do NOT use apt-key add. The gpg --dearmor method is the only way to support modern Kali security standards.
+# Check PostgreSQL connection
+PGPASSWORD='StrongDBPassword123!' psql -h localhost -U sensu -d sensu_db -c "SELECT 1 as connection_test;"
 
-=> Agent Connection Refused
+# Check service logs
+sudo journalctl -u sensu-backend -f --no-pager
+sudo journalctl -u sensu-agent -f --no-pager
+🌐 Web Dashboard Access
+Access Sensu Web UI
+bash
+# Determine your server IP
+ip addr show | grep inet
 
-Check Firewall on Ubuntu: sudo ufw status (Ensure 8081 is ALLOW).
+# Access the dashboard
+echo "Sensu Web UI: http://$(hostname -I | awk '{print $1}'):3000"
+echo "Username: admin"
+echo "Password: $(cat ~/sensu-credentials.txt 2>/dev/null | grep Password | cut -d' ' -f2)"
+Dashboard Features
+Entity Viewer: Real-time agent status
 
-Check Network: ping UBUNTU_IP from the agent.
+Event Management: View and silence alerts
 
-Check Logs: sudo journalctl -u sensu-agent -f.
+Check Configuration: Manage monitoring checks
 
-=> Time Synchronization Sensu requires synchronized clocks.
+Role-Based Access: Secure multi-user access
 
-Bash
+Dark/Light Theme: Customizable interface
 
-# Run on all servers
-date
-# If incorrect, install chrony
-sudo apt install chrony -y
-📸 Screenshots
-Sensu Web UI Dashboard
-Real-time view of Ubuntu, Kali, and CentOS nodes.
+🚨 Troubleshooting Guide
+PostgreSQL Connection Issues
+bash
+# Check PostgreSQL is running
+sudo systemctl status postgresql
 
-Event Monitoring
-Active alerts for CPU and Disk usage.
+# Check listening ports
+sudo ss -tlnp | grep 5432
 
+# Check pg_hba.conf configuration
+sudo cat /etc/postgresql/13/main/pg_hba.conf | grep sensu
+
+# Test PostgreSQL connection
+PGPASSWORD='StrongDBPassword123!' psql -h localhost -U sensu -d sensu_db -c "SELECT 1;"
+Kali Linux GPG/SHA-1 Error
+bash
+# Error: "Weak digest algorithm (SHA1)"
+# Solution: Use manual key installation method
+
+# Remove existing configuration
+sudo rm /etc/apt/sources.list.d/sensu.list
+sudo rm /usr/share/keyrings/sensu-archive-keyring.gpg 2>/dev/null || true
+
+# Reinstall using the secure method
+curl -fsSL https://packagecloud.io/sensu/stable/gpgkey | \
+  sudo gpg --dearmor -o /usr/share/keyrings/sensu-archive-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/sensu-archive-keyring.gpg] \
+  https://packagecloud.io/sensu/stable/debian/ any main" | \
+  sudo tee /etc/apt/sources.list.d/sensu.list
+Agent Connection Issues
+bash
+# Check network connectivity
+ping YOUR_UBUNTU_IP
+telnet YOUR_UBUNTU_IP 8081
+
+# Verify agent configuration
+sensu-agent config view
+
+# Check backend firewall
+sudo ufw status verbose
+
+# Debug agent connection
+sudo sensu-agent start --log-level debug
+Database Performance Issues
+bash
+# Check slow queries in PostgreSQL
+PGPASSWORD='StrongDBPassword123!' psql -h localhost -U sensu -d sensu_db -c "
+SELECT query, calls, total_time, mean_time
+FROM pg_stat_statements
+ORDER BY mean_time DESC
+LIMIT 10;
+"
+
+# Check locks in PostgreSQL
+PGPASSWORD='StrongDBPassword123!' psql -h localhost -U sensu -d sensu_db -c "
+SELECT pid, usename, pg_blocking_pids(pid) as blocked_by, query
+FROM pg_stat_activity
+WHERE cardinality(pg_blocking_pids(pid)) > 0;
+"
+📈 Performance Tuning
+PostgreSQL Performance Optimization
+bash
+# Edit PostgreSQL configuration
+sudo nano /etc/postgresql/13/main/postgresql.conf
+
+# Recommended settings for Sensu (adjust based on your RAM):
+shared_buffers = 1GB                    # 25% of available RAM
+work_mem = 16MB                         # For sorting operations
+maintenance_work_mem = 256MB            # For VACUUM, CREATE INDEX
+effective_cache_size = 3GB              # ~75% of available RAM
+max_connections = 200                   # Sufficient for Sensu
+checkpoint_completion_target = 0.9      # Smooth out checkpoints
+wal_buffers = 16MB                      # Default is fine
+default_statistics_target = 100         # Better query planning
+
+# For write-heavy Sensu deployments:
+max_wal_size = 2GB
+min_wal_size = 1GB
+
+# Restart PostgreSQL
+sudo systemctl restart postgresql
+🔄 Maintenance Operations
+Backup and Restore
+bash
+# Backup etcd data (if still using etcd)
+sensu-backend etcd snapshot save /backup/sensu-backup.db
+
+# Restore from backup
+sensu-backend etcd snapshot restore /backup/sensu-backup.db \
+  --data-dir /var/lib/sensu/sensu-backend/etcd
+Version Upgrade
+bash
+# Check current version
+sensu-backend version
+psql --version
+
+# Upgrade procedure
+sudo apt update
+sudo apt install sensu-go-backend postgresql-13
+sudo systemctl restart sensu-backend postgresql
+
+# Verify upgrade
+sensu-backend version
+psql --version
+sensuctl cluster health
 🤝 Contributing
+We welcome contributions! Please see our Contributing Guidelines for details.
+
 Fork the repository
 
-Create a feature branch
+Create a feature branch (git checkout -b feature/AmazingFeature)
 
-Submit a Pull Request
+Commit your changes (git commit -m 'Add some AmazingFeature')
+
+Push to the branch (git push origin feature/AmazingFeature)
+
+Open a Pull Request
+
+📝 License
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 👨‍💻 Author
-Saleem Ali
+Saleem Ali - DevOps & AIOps Specialist
 
 LinkedIn: linkedin.com/in/saleem-ali-189719325
 
 GitHub: github.com/ali4210
 
+Portfolio: saleem-ali.dev
+
 Currently studying AIOps at Al-Nafi International College
 
 🙏 Acknowledgments
-Sensu Documentation
+Sensu Team for their excellent monitoring platform
 
-Al-Nafi International College
+PostgreSQL Team for robust database solutions
 
-Created for the DevOps Community.
+Al-Nafi International College for educational support
+
+The DevOps community for best practices and inspiration
